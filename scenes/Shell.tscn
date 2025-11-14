@@ -1,0 +1,28 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource path="res://scripts/Shell.gd" type="Script" id=1]
+
+[sub_resource type="SphereShape3D" id=1]
+radius = 0.12
+
+[sub_resource type="SphereMesh" id=2]
+radius = 0.12
+
+[sub_resource type="StandardMaterial3D" id=3]
+albedo_color = Color(0.988235, 0.705882, 0.223529, 1)
+emission_enabled = true
+emission = Color(1, 0.678431, 0.164706, 1)
+emission_energy = 1.5
+
+[node name="Shell" type="Area3D"]
+script = ExtResource(1)
+monitoring = true
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource(1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource(2)
+material_override = SubResource(3)
+

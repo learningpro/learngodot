@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebTank Immersion</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at top, #102036, #050910 65%);
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #e8f1ff;
+      }
+
+      #canvas-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      canvas#groot {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      #overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(9, 17, 29, 0.76);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(6px);
+      }
+
+      #overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .panel {
+        max-width: 460px;
+        padding: 2rem 2.25rem;
+        text-align: center;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(24, 44, 68, 0.92), rgba(13, 26, 40, 0.92));
+        box-shadow: 0 24px 80px rgba(7, 14, 24, 0.6);
+      }
+
+      .panel h1 {
+        margin: 0 0 0.75rem;
+        font-size: 2rem;
+        letter-spacing: 0.04em;
+      }
+
+      .panel p {
+        margin: 0.25rem 0;
+        line-height: 1.6;
+        opacity: 0.85;
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 1.25rem;
+      }
+
+      button {
+        font: inherit;
+        background: linear-gradient(135deg, #1fbf86, #2de1a8);
+        color: #031621;
+        border: none;
+        border-radius: 999px;
+        padding: 0.75rem 1.75rem;
+        cursor: pointer;
+        box-shadow: 0 12px 32px rgba(25, 214, 150, 0.35);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 42px rgba(25, 214, 150, 0.5);
+      }
+
+      #hud {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+        pointer-events: none;
+      }
+
+      .tag {
+        padding: 0.4rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(7, 153, 255, 0.12);
+        border: 1px solid rgba(109, 182, 255, 0.3);
+        font-size: 0.85rem;
+        letter-spacing: 0.02em;
+      }
+
+      .crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        margin-top: -9px;
+        margin-left: -9px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 0 12px rgba(140, 210, 255, 0.65);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+
+      .crosshair.visible {
+        opacity: 1;
+      }
+
+      #loading {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.4);
+        padding: 0.6rem 1.2rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        letter-spacing: 0.05em;
+        display: none;
+      }
+
+      #loading.visible {
+        display: block;
+      }
+    </style>
+    <script defer src="build/godot.loader.js"></script>
+    <script type="module">
+      let overlay;
+      let crosshair;
+      let loading;
+      let engineInstance = null;
+
+      async function bootGame() {
+        if (!window.Engine) {
+          console.error("缺少 Godot HTML5 导出文件，请先执行导出。");
+          return;
+        }
+        loading.classList.add("visible");
+        const canvas = document.getElementById("groot");
+        try {
+          engineInstance = await Engine.createAsync({
+            canvas,
+            canvasResizePolicy: Engine.CanvasResizePolicy.FIT,
+            executable: "build/web_tank.wasm",
+            mainPack: "build/web_tank.pck",
+          });
+          await engineInstance.start();
+        } catch (err) {
+          console.error(err);
+          loading.textContent = "加载失败：" + err;
+          return;
+        } finally {
+          loading.classList.remove("visible");
+        }
+      }
+
+      function enterGame() {
+        overlay.classList.add("hidden");
+        crosshair.classList.add("visible");
+        if (!engineInstance) {
+          bootGame();
+        }
+        requestFullscreen();
+        const canvas = document.getElementById("groot");
+        if (canvas.requestPointerLock) {
+          canvas.requestPointerLock();
+        }
+      }
+
+      function requestFullscreen() {
+        const container = document.getElementById("canvas-container");
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        overlay = document.getElementById("overlay");
+        crosshair = document.querySelector(".crosshair");
+        loading = document.getElementById("loading");
+        const canvas = document.getElementById("groot");
+        document.getElementById("start-button").addEventListener("click", enterGame);
+        document.getElementById("fullscreen-button").addEventListener("click", requestFullscreen);
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && overlay.classList.contains("hidden")) {
+            overlay.classList.remove("hidden");
+            crosshair.classList.remove("visible");
+          }
+        });
+        document.addEventListener("pointerlockchange", () => {
+          if (document.pointerLockElement !== canvas) {
+            overlay.classList.remove("hidden");
+            crosshair.classList.remove("visible");
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="canvas-container">
+      <canvas id="groot"></canvas>
+      <div id="overlay">
+        <div class="panel">
+          <h1>WebTank：沉浸式战斗</h1>
+          <p>点击「进入战场」后，浏览器会捕获鼠标。</p>
+          <p>方向键或 WASD 驱动坦克移动，鼠标瞄准，左键开火。</p>
+          <p>按 Esc 可释放鼠标并显示此界面。</p>
+          <div class="actions">
+            <button id="start-button">进入战场</button>
+            <button id="fullscreen-button" type="button">全屏</button>
+          </div>
+        </div>
+      </div>
+      <div class="crosshair"></div>
+      <div id="hud">
+        <div class="tag">2.5D · 第一人称 · HTML5</div>
+        <div class="tag">Godot 4 + 自定义网页界面</div>
+      </div>
+      <div id="loading">正在加载 Godot 引擎...</div>
+    </div>
+  </body>
+</html>
