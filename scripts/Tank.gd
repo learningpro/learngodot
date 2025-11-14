@@ -42,7 +42,7 @@ func _configure_input() -> void:
         InputMap.add_action("fire")
     var mouse_event := InputEventMouseButton.new()
     mouse_event.button_index = MOUSE_BUTTON_LEFT
-    mouse_event.pressed = true
+    mouse_event.pressure = 1.0
     if not _action_has_event("fire", mouse_event):
         InputMap.action_add_event("fire", mouse_event)
 
@@ -55,8 +55,10 @@ func _action_has_event(action: String, event: InputEvent) -> bool:
 func _physics_process(delta: float) -> void:
     _fire_timer = max(_fire_timer - delta, 0.0)
     var input_vector := Vector2.ZERO
-    input_vector.y = Input.get_action_strength("move_forward") - Input.get_action_strength("move_back")
-    input_vector.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+    input_vector.y -= Input.get_action_strength("move_forward")
+    input_vector.y += Input.get_action_strength("move_back")
+    input_vector.x -= Input.get_action_strength("move_left")
+    input_vector.x += Input.get_action_strength("move_right")
     var target_velocity := Vector3.ZERO
     if input_vector.length() > 0.01:
         input_vector = input_vector.normalized()
